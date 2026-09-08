@@ -1,0 +1,8 @@
+[
+  { "id": "frimousse", "label": "Frimousse", "emoji": "🧼" },
+  { "id": "table", "label": "Table", "emoji": "🍽️" },
+  { "id": "dents", "label": "Dents", "emoji": "🪥" },
+  { "id": "pyjama", "label": "Pyjama", "emoji": "🌙" },
+  { "id": "habits", "label": "Habits", "emoji": "👕" },
+  { "id": "cheveux", "label": "Cheveux", "emoji": "💇" }
+]

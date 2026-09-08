@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Hello">
-<title>Hello iPad — 2 colonnes</title>
+<meta name="apple-mobile-web-app-title" content="Missions">
+<title>Missions du soir 🌙</title>
 <link rel="stylesheet" href="mario-peach-v1.css">
 <style>
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
@@ -17,43 +17,110 @@
   .col { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: y mandatory; }
   .col.left { border-right: 2px solid #000; }
   .case { min-height: 100%; scroll-snap-align: start; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; text-align: center; touch-action: pan-y; }
-  .case h2 { font-size: 3rem; margin: 0; }
-  .case p { margin: 0; opacity: .8; font-size: 1.1rem; }
-  .case button { font-size: 1.2rem; min-height: 56px; min-width: 120px; padding: 12px 24px; border-radius: 14px; border: 0; background: rgba(255,255,255,.95); color: #111; touch-action: manipulation; }
+  .case h2 { font-size: 2.4rem; margin: 0; }
+  .case p { margin: 0; opacity: .85; font-size: 1.1rem; }
+  .case button { font-size: 1.3rem; min-height: 64px; min-width: 180px; padding: 14px 28px; border-radius: 16px; border: 0; touch-action: manipulation; }
   .case button:active { transform: scale(.95); }
+  .case.done { outline: 5px solid #22c55e; outline-offset: -5px; }
+  .case.done button { background: #22c55e; color: #fff; border: 2px solid #fff; }
+  .star { font-size: 4.5rem; line-height: 1; }
+  .star.locked { filter: grayscale(1); opacity: .5; }
+  .star.won { animation: pop .5s ease; }
+  @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
+  .reset { font-size: 1rem; min-height: 44px; min-width: 0; padding: 8px 16px; border-radius: 12px; background: rgba(0,0,0,.35); color: inherit; border: 2px solid currentColor; }
   .arrow { font-size: 2rem; opacity: .6; }
-  /* Couleurs des cases : voir themes.css (.theme-peach / .theme-mario) */
 </style>
 </head>
 <body>
-<div id="topbar">2 colonnes • 5 cases<span id="size">…</span></div>
+<div id="topbar">🌙 Missions du soir<span id="size">…</span></div>
 <div class="layout">
-  <div class="col left theme-peach" id="colL">
-    <div class="case"><h2>👑 A1</h2><p>Peach 1 / 5 🍑</p><button data-c="a1">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>👑 A2</h2><p>Peach 2 / 5 🍑</p><button data-c="a2">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>👑 A3</h2><p>Peach 3 / 5 🍑</p><button data-c="a3">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>👑 A4</h2><p>Peach 4 / 5 🍑</p><button data-c="a4">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>👑 A5</h2><p>Peach 5 / 5 — fin 🍑</p><button data-c="a5">Tap 0</button><div class="arrow">↑</div></div>
-  </div>
-  <div class="col right theme-mario" id="colR">
-    <div class="case"><h2>🍄 B1</h2><p>Mario 1 / 5 🔴</p><button data-c="b1">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>🍄 B2</h2><p>Mario 2 / 5 🔴</p><button data-c="b2">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>🍄 B3</h2><p>Mario 3 / 5 ⭐</p><button data-c="b3">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>🍄 B4</h2><p>Mario 4 / 5 🔴</p><button data-c="b4">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case"><h2>🍄 B5</h2><p>Mario 5 / 5 — fin 🏁</p><button data-c="b5">Tap 0</button><div class="arrow">↑</div></div>
-  </div>
+  <div class="col left theme-peach" id="colL"></div>
+  <div class="col right theme-mario" id="colR"></div>
 </div>
 <script>
-var counts = {};
-function onTap(btn) {
-  var k = btn.getAttribute('data-c');
-  if (!counts[k]) { counts[k] = 0; }
-  counts[k]++;
-  btn.textContent = 'Tap ' + counts[k];
+var DEFAULT_MISSIONS = [
+  { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
+  { id: 'table', label: 'Table', emoji: '🍽️' },
+  { id: 'dents', label: 'Dents', emoji: '🪥' },
+  { id: 'pyjama', label: 'Pyjama', emoji: '🌙' },
+  { id: 'habits', label: 'Habits', emoji: '👕' },
+  { id: 'cheveux', label: 'Cheveux', emoji: '💇' }
+];
+var mem = {};
+function key(prefix, id) { return 'mario-peach-v1-' + prefix + '-' + id; }
+function isDone(prefix, id) {
+  try { return localStorage.getItem(key(prefix, id)) === '1'; }
+  catch (e) { return mem[key(prefix, id)] === '1'; }
 }
-var btns = document.getElementsByTagName('button');
-for (var i = 0; i < btns.length; i++) {
-  (function(b) { b.onclick = function() { onTap(b); }; })(btns[i]);
+function setDone(prefix, id, v) {
+  try { localStorage.setItem(key(prefix, id), v ? '1' : '0'); }
+  catch (e) { mem[key(prefix, id)] = v ? '1' : '0'; }
+}
+function el(tag, cls, text) {
+  var d = document.createElement(tag);
+  if (cls) { d.className = cls; }
+  if (text) { d.textContent = text; }
+  return d;
+}
+function buildColumn(colId, prefix, kid) {
+  var col = document.getElementById(colId);
+  var missions = window.MISSIONS || DEFAULT_MISSIONS;
+  col.innerHTML = '';
+  for (var i = 0; i < missions.length; i++) {
+    (function(m, idx) {
+      var c = el('div', 'case');
+      var done = isDone(prefix, m.id);
+      if (done) { c.className = 'case done'; }
+      c.appendChild(el('h2', null, m.emoji + ' ' + m.label));
+      c.appendChild(el('p', null, kid + ' • mission ' + (idx + 1) + ' / ' + missions.length));
+      var b = el('button', null, done ? 'Fait ✅' : 'À faire 👆');
+      b.onclick = function() {
+        var now = !isDone(prefix, m.id);
+        setDone(prefix, m.id, now);
+        c.className = now ? 'case done' : 'case';
+        b.textContent = now ? 'Fait ✅' : 'À faire 👆';
+        refreshStar(prefix);
+      };
+      c.appendChild(b);
+      c.appendChild(el('div', 'arrow', '↓'));
+      col.appendChild(c);
+    })(missions[i], i);
+  }
+  var s = el('div', 'case');
+  s.id = 'star-' + prefix;
+  col.appendChild(s);
+  var r = el('button', 'reset', '↺ Recommencer');
+  r.onclick = function() {
+    for (var j = 0; j < missions.length; j++) { setDone(prefix, missions[j].id, false); }
+    buildColumn(colId, prefix, kid);
+  };
+  s.appendChild(r);
+  refreshStar(prefix);
+}
+function refreshStar(prefix) {
+  var missions = window.MISSIONS || DEFAULT_MISSIONS;
+  var s = document.getElementById('star-' + prefix);
+  if (!s) { return; }
+  var n = 0, j;
+  for (j = 0; j < missions.length; j++) { if (isDone(prefix, missions[j].id)) { n++; } }
+  var won = (n === missions.length);
+  s.innerHTML = '';
+  s.appendChild(el('div', 'star ' + (won ? 'won' : 'locked'), won ? '⭐' : '☆'));
+  s.appendChild(el('h2', null, won ? 'Bravo !' : n + ' / ' + missions.length));
+  s.appendChild(el('p', null, won ? 'Étoile gagnée ! 🌟' : 'Finis toutes les missions pour gagner l’étoile'));
+  var r = el('button', 'reset', '↺ Recommencer');
+  r.onclick = function() {
+    for (var k = 0; k < missions.length; k++) { setDone(prefix, missions[k].id, false); }
+    var colId = prefix === 'peach' ? 'colL' : 'colR';
+    var kid = prefix === 'peach' ? '👑 Peach' : '🍄 Mario';
+    buildColumn(colId, prefix, kid);
+  };
+  s.appendChild(r);
+  s.appendChild(el('div', 'arrow', '↑'));
+}
+function buildAll() {
+  buildColumn('colL', 'peach', '👑 Peach');
+  buildColumn('colR', 'mario', '🍄 Mario');
 }
 function info() {
   document.getElementById('size').textContent = window.innerWidth + '×' + window.innerHeight;
@@ -61,6 +128,17 @@ function info() {
 window.addEventListener('resize', info);
 window.addEventListener('orientationchange', info);
 info();
+if (window.fetch) {
+  fetch('missions.json').then(function(r) {
+    if (!r.ok) { throw new Error('http ' + r.status); }
+    return r.json();
+  }).then(function(list) {
+    if (list && list.length) { window.MISSIONS = list; }
+    buildAll();
+  }).catch(function() { buildAll(); });
+} else {
+  buildAll();
+}
 </script>
 </body>
 </html>
