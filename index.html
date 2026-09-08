@@ -106,6 +106,24 @@ function el(tag, cls, text) {
   if (text) { d.textContent = text; }
   return d;
 }
+// Glissé animé vers le bas (maison, iOS 15 safe : pas de scroll-behavior smooth)
+function glideTo(colEl, target) {
+  var start = colEl.scrollTop;
+  var dist = target - start;
+  if (dist < 2) { return; }
+  var t0 = Date.now();
+  var dur = 800;
+  function step() {
+    var t = Date.now() - t0;
+    if (t >= dur) { colEl.scrollTop = target; return; }
+    var p = t / dur;
+    var e = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    colEl.scrollTop = start + dist * e;
+    if (window.requestAnimationFrame) { window.requestAnimationFrame(step); }
+    else { setTimeout(step, 16); }
+  }
+  step();
+}
 function buildColumn(colId, prefix, kid) {
   var col = document.getElementById(colId);
   var missions = missionsFor(prefix);
@@ -127,7 +145,7 @@ function buildColumn(colId, prefix, kid) {
         refreshStars();
         if (now && countDone(prefix) === missions.length) {
           var s = document.getElementById('star-' + prefix);
-          if (s && s.parentNode) { s.parentNode.scrollTop = s.parentNode.scrollHeight; }
+          if (s && s.parentNode) { glideTo(s.parentNode, s.parentNode.scrollHeight); }
         }
       };
       c.appendChild(b);
