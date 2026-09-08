@@ -79,7 +79,7 @@ function buildColumn(colId, prefix, kid) {
         setDone(prefix, m.id, now);
         c.className = now ? 'case done' : 'case';
         b.textContent = now ? 'Fait ✅' : 'À faire 👆';
-        refreshStar(prefix);
+        refreshStars();
       };
       c.appendChild(b);
       c.appendChild(el('div', 'arrow', '↓'));
@@ -93,27 +93,43 @@ function buildColumn(colId, prefix, kid) {
   r.onclick = function() {
     for (var j = 0; j < missions.length; j++) { setDone(prefix, missions[j].id, false); }
     buildColumn(colId, prefix, kid);
+    refreshStars();
   };
   s.appendChild(r);
-  refreshStar(prefix);
+  refreshStars();
+}
+function countDone(prefix) {
+  var missions = window.MISSIONS || DEFAULT_MISSIONS;
+  var n = 0;
+  for (var j = 0; j < missions.length; j++) { if (isDone(prefix, missions[j].id)) { n++; } }
+  return n;
+}
+function refreshStars() {
+  refreshStar('peach');
+  refreshStar('mario');
 }
 function refreshStar(prefix) {
   var missions = window.MISSIONS || DEFAULT_MISSIONS;
   var s = document.getElementById('star-' + prefix);
   if (!s) { return; }
-  var n = 0, j;
-  for (j = 0; j < missions.length; j++) { if (isDone(prefix, missions[j].id)) { n++; } }
-  var won = (n === missions.length);
+  var other = prefix === 'peach' ? 'mario' : 'peach';
+  var otherKid = prefix === 'peach' ? 'Mario' : 'Peach';
+  var n = countDone(prefix);
+  var nOther = countDone(other);
+  var mineDone = (n === missions.length);
+  var won = mineDone && (nOther === missions.length);
+  var waiting = mineDone && !won;
   s.innerHTML = '';
   s.appendChild(el('div', 'star ' + (won ? 'won' : 'locked'), won ? '⭐' : '☆'));
-  s.appendChild(el('h2', null, won ? 'Bravo !' : n + ' / ' + missions.length));
-  s.appendChild(el('p', null, won ? 'Étoile gagnée ! 🌟' : 'Finis toutes les missions pour gagner l’étoile'));
+  s.appendChild(el('h2', null, won ? 'Bravo !' : (waiting ? '6 / 6' : n + ' / ' + missions.length)));
+  s.appendChild(el('p', null, won ? 'Étoiles gagnées ! 🌟' : (waiting ? 'En attente de ' + otherKid + ' ! 🤝' : 'Finis toutes les missions pour gagner l’étoile')));
   var r = el('button', 'reset', '↺ Recommencer');
   r.onclick = function() {
     for (var k = 0; k < missions.length; k++) { setDone(prefix, missions[k].id, false); }
     var colId = prefix === 'peach' ? 'colL' : 'colR';
     var kid = prefix === 'peach' ? '👑 Peach' : '🍄 Mario';
     buildColumn(colId, prefix, kid);
+    refreshStars();
   };
   s.appendChild(r);
   s.appendChild(el('div', 'arrow', '↑'));
