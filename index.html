@@ -32,7 +32,7 @@
 </style>
 </head>
 <body>
-<div id="topbar">🌙 Missions du soir<span id="size">…</span></div>
+<div id="topbar">🌙 Missions du soir<span id="size">…</span><span id="last"></span></div>
 <div class="layout">
   <div class="col left theme-peach" id="colL"></div>
   <div class="col right theme-mario" id="colR"></div>
@@ -56,6 +56,45 @@ function setDone(prefix, id, v) {
   try { localStorage.setItem(key(prefix, id), v ? '1' : '0'); }
   catch (e) { mem[key(prefix, id)] = v ? '1' : '0'; }
 }
+// Horodatage : chaque clic met à jour l'heure, +1h sans clic = reset auto au chargement
+var TIMEOUT_MS = 60 * 60 * 1000; // 1 heure, à ajuster ici
+var LS_PREFIX = 'mario-peach-v1-';
+var LS_LAST = LS_PREFIX + 'last-click';
+function getLast() {
+  try { var v = localStorage.getItem(LS_LAST); if (v) { return parseInt(v, 10) || 0; } }
+  catch (e) {}
+  return parseInt(mem[LS_LAST] || '0', 10) || 0;
+}
+function renderLast(t) {
+  var lastEl = document.getElementById('last');
+  if (!lastEl) { return; }
+  if (!t) { lastEl.textContent = ''; return; }
+  var d = new Date(t);
+  var mm = d.getMinutes();
+  lastEl.textContent = '• ' + d.getHours() + 'h' + (mm < 10 ? '0' + mm : mm);
+}
+function touch() {
+  var t = Date.now();
+  try { localStorage.setItem(LS_LAST, String(t)); }
+  catch (e) { mem[LS_LAST] = String(t); }
+  renderLast(t);
+}
+function clearAll() {
+  try {
+    var rm = [];
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf(LS_PREFIX) === 0) { rm.push(k); }
+    }
+    for (var j = 0; j < rm.length; j++) { localStorage.removeItem(rm[j]); }
+  } catch (e) {}
+  mem = {};
+}
+function checkExpiry() {
+  var last = getLast();
+  if (last && (Date.now() - last > TIMEOUT_MS)) { clearAll(); last = 0; }
+  renderLast(last);
+}
 function el(tag, cls, text) {
   var d = document.createElement(tag);
   if (cls) { d.className = cls; }
@@ -77,6 +116,7 @@ function buildColumn(colId, prefix, kid) {
       b.onclick = function() {
         var now = !isDone(prefix, m.id);
         setDone(prefix, m.id, now);
+        touch();
         c.className = now ? 'case done' : 'case';
         b.textContent = now ? 'Fait ✅' : 'À faire 👆';
         refreshStars();
@@ -92,6 +132,7 @@ function buildColumn(colId, prefix, kid) {
   var r = el('button', 'reset', '↺ Recommencer');
   r.onclick = function() {
     for (var j = 0; j < missions.length; j++) { setDone(prefix, missions[j].id, false); }
+    touch();
     buildColumn(colId, prefix, kid);
     refreshStars();
   };
@@ -121,11 +162,12 @@ function refreshStar(prefix) {
   var waiting = mineDone && !won;
   s.innerHTML = '';
   s.appendChild(el('div', 'star ' + (won ? 'won' : 'locked'), won ? '⭐' : '☆'));
-  s.appendChild(el('h2', null, won ? 'Bravo !' : (waiting ? '6 / 6' : n + ' / ' + missions.length)));
+  s.appendChild(el('h2', null, won ? 'Bravo !' : n + ' / ' + missions.length));
   s.appendChild(el('p', null, won ? 'Étoiles gagnées ! 🌟' : (waiting ? 'En attente de ' + otherKid + ' ! 🤝' : 'Finis toutes les missions pour gagner l’étoile')));
   var r = el('button', 'reset', '↺ Recommencer');
   r.onclick = function() {
     for (var k = 0; k < missions.length; k++) { setDone(prefix, missions[k].id, false); }
+    touch();
     var colId = prefix === 'peach' ? 'colL' : 'colR';
     var kid = prefix === 'peach' ? '👑 Peach' : '🍄 Mario';
     buildColumn(colId, prefix, kid);
@@ -144,6 +186,7 @@ function info() {
 window.addEventListener('resize', info);
 window.addEventListener('orientationchange', info);
 info();
+checkExpiry();
 if (window.fetch) {
   fetch('missions.json').then(function(r) {
     if (!r.ok) { throw new Error('http ' + r.status); }
