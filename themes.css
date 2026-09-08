@@ -1,0 +1,20 @@
+/* themes.css — palettes Peach (gauche) et Mario (droite) */
+/* Pas d'images externes : degrade CSS + emoji dans le HTML (offline, leger, iOS 15 OK) */
+
+.theme-peach { color: #6b103f; }
+.theme-peach .case { border-bottom: 3px solid rgba(255, 255, 255, .6); }
+.theme-peach .case:nth-child(1) { background: linear-gradient(180deg, #ffe3ef, #ff9ec7); }
+.theme-peach .case:nth-child(2) { background: linear-gradient(180deg, #ff9ec7, #f472b6); }
+.theme-peach .case:nth-child(3) { background: linear-gradient(180deg, #f9a8d4, #ffcc33); }
+.theme-peach .case:nth-child(4) { background: linear-gradient(180deg, #ffcc33, #ffb3d9); }
+.theme-peach .case:nth-child(5) { background: linear-gradient(180deg, #ffd6e8, #3b82f6); color: #fff; }
+.theme-peach button { background: #fff; color: #9d174d; border: 2px solid #ffcc33; }
+
+.theme-mario { color: #fff; }
+.theme-mario .case { border-bottom: 3px solid #000; }
+.theme-mario .case:nth-child(1) { background: linear-gradient(180deg, #e52521, #991b1b); }
+.theme-mario .case:nth-child(2) { background: linear-gradient(180deg, #0b3d91, #1e40af); }
+.theme-mario .case:nth-child(3) { background: linear-gradient(180deg, #e52521, #0b3d91); }
+.theme-mario .case:nth-child(4) { background: linear-gradient(180deg, #1e40af, #e52521); }
+.theme-mario .case:nth-child(5) { background: linear-gradient(180deg, #111827, #e52521); }
+.theme-mario button { background: #ffcb05; color: #111; border: 2px solid #fff; }

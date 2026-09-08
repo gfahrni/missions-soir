@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Hello">
 <title>Hello iPad — 2 colonnes</title>
+<link rel="stylesheet" href="themes.css">
 <style>
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #111; color: #fff; font-family: -apple-system, system-ui, sans-serif; }
@@ -21,27 +22,25 @@
   .case button { font-size: 1.2rem; min-height: 56px; min-width: 120px; padding: 12px 24px; border-radius: 14px; border: 0; background: rgba(255,255,255,.95); color: #111; touch-action: manipulation; }
   .case button:active { transform: scale(.95); }
   .arrow { font-size: 2rem; opacity: .6; }
-  /* Couleurs : 5 par colonne */
-  .l1 { background: #1a3a5f; } .l2 { background: #14532d; } .l3 { background: #5b21b6; } .l4 { background: #0e7490; } .l5 { background: #7c2d12; }
-  .r1 { background: #7f1d1d; } .r2 { background: #78350f; } .r3 { background: #365314; } .r4 { background: #500f28; } .r5 { background: #111827; }
+  /* Couleurs des cases : voir themes.css (.theme-peach / .theme-mario) */
 </style>
 </head>
 <body>
 <div id="topbar">2 colonnes • 5 cases<span id="size">…</span></div>
 <div class="layout">
-  <div class="col left" id="colL">
-    <div class="case l1"><h2>A1</h2><p>Gauche 1 / 5</p><button data-c="a1">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case l2"><h2>A2</h2><p>Gauche 2 / 5</p><button data-c="a2">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case l3"><h2>A3</h2><p>Gauche 3 / 5</p><button data-c="a3">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case l4"><h2>A4</h2><p>Gauche 4 / 5</p><button data-c="a4">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case l5"><h2>A5</h2><p>Gauche 5 / 5 — fin</p><button data-c="a5">Tap 0</button><div class="arrow">↑</div></div>
+  <div class="col left theme-peach" id="colL">
+    <div class="case"><h2>👑 A1</h2><p>Peach 1 / 5 🍑</p><button data-c="a1">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>👑 A2</h2><p>Peach 2 / 5 🍑</p><button data-c="a2">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>👑 A3</h2><p>Peach 3 / 5 🍑</p><button data-c="a3">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>👑 A4</h2><p>Peach 4 / 5 🍑</p><button data-c="a4">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>👑 A5</h2><p>Peach 5 / 5 — fin 🍑</p><button data-c="a5">Tap 0</button><div class="arrow">↑</div></div>
   </div>
-  <div class="col right" id="colR">
-    <div class="case r1"><h2>B1</h2><p>Droite 1 / 5</p><button data-c="b1">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case r2"><h2>B2</h2><p>Droite 2 / 5</p><button data-c="b2">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case r3"><h2>B3</h2><p>Droite 3 / 5</p><button data-c="b3">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case r4"><h2>B4</h2><p>Droite 4 / 5</p><button data-c="b4">Tap 0</button><div class="arrow">↓</div></div>
-    <div class="case r5"><h2>B5</h2><p>Droite 5 / 5 — fin</p><button data-c="b5">Tap 0</button><div class="arrow">↑</div></div>
+  <div class="col right theme-mario" id="colR">
+    <div class="case"><h2>🍄 B1</h2><p>Mario 1 / 5 🔴</p><button data-c="b1">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>🍄 B2</h2><p>Mario 2 / 5 🔴</p><button data-c="b2">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>🍄 B3</h2><p>Mario 3 / 5 ⭐</p><button data-c="b3">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>🍄 B4</h2><p>Mario 4 / 5 🔴</p><button data-c="b4">Tap 0</button><div class="arrow">↓</div></div>
+    <div class="case"><h2>🍄 B5</h2><p>Mario 5 / 5 — fin 🏁</p><button data-c="b5">Tap 0</button><div class="arrow">↑</div></div>
   </div>
 </div>
 <script>
