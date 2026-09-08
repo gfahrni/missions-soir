@@ -1,16 +1,18 @@
-# AGENTS.md — hello-ghpages
+# AGENTS.md — missions-soir
 
 ## But du projet
-Tester la compatibilité des webapps sur **iPad mini 4** (Safari ancien, max iPadOS 15.x).
-Ce repo est un bac à sable minimal déployé sur **GitHub Pages**.
+App **« Missions du soir »** pour enfants sur **iPad mini 4** (Safari ancien, max iPadOS 15.x).
+Deux colonnes coopératives (👑 Peach / 🍄 Mario), cases missions cochables au doigt, étoile débloquée seulement si les 2 colonnes sont pleines.
+Déployé sur **GitHub Pages**.
 
 ## Stack
-- HTML/CSS/JS statique uniquement, dans `index.html`.
-- Aucun build, aucune dépendance, aucun framework.
-- Déploiement : push sur `main` → GitHub Pages (repo `gfahrni/hello-ghpages`).
+- HTML/CSS/JS statique uniquement, sans build, sans dépendance, sans framework.
+- Déploiement : push sur `main` → GitHub Pages (repo `gfahrni/missions-soir`).
 
 ## Structure
-- `index.html` : seul fichier applicatif (page centrée, bouton JS inline).
+- `index.html` : layout 2 colonnes + logique (JS simple, tout inline).
+- `mario-peach-v1.css` : thème versionné (rose Peach / rouge Mario). Renommer à chaque changement visuel (ex: `mario-peach-v2.css`) pour forcer le cache Safari.
+- `missions.json` : liste des missions `{id, label, emoji}` (fallback en dur dans le JS si fetch échoue).
 
 ## Contraintes iPad mini 4 (importantes)
 - Rester compatible Safari iOS 15 : JS simple (pas de modules ES, optional chaining, etc. sauf si c'est le test visé).
