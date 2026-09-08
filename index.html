@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Missions">
 <title>Missions du soir 🌙</title>
-<link rel="stylesheet" href="mario-peach-v1.css">
+<link rel="stylesheet" href="mario-peach-v2.css">
 <style>
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #111; color: #fff; font-family: -apple-system, system-ui, sans-serif; }
@@ -113,6 +113,40 @@ function el(tag, cls, text) {
   if (text) { d.textContent = text; }
   return d;
 }
+// Dégradés auto : start (case 1) -> end (dernière case), étalés sur N cases.
+// Pour ajouter des missions, rien à toucher ici ni dans le CSS.
+var THEMES = {
+  peach: { from: '#fff0f6', to: '#2b0a16', light: '#6b103f', dark: '#ffffff' },
+  mario: { from: '#fecaca', to: '#230606', light: '#7f1d1d', dark: '#ffffff' }
+};
+function hexRgb(h) {
+  h = h.replace('#', '');
+  return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)];
+}
+function hexByte(v) {
+  if (v < 0) { v = 0; } if (v > 255) { v = 255; }
+  var s = Math.round(v).toString(16);
+  return s.length < 2 ? '0' + s : s;
+}
+function mixHex(a, b, t) {
+  var A = hexRgb(a), B = hexRgb(b);
+  return '#' + hexByte(A[0] + (B[0] - A[0]) * t) + hexByte(A[1] + (B[1] - A[1]) * t) + hexByte(A[2] + (B[2] - A[2]) * t);
+}
+function lumHex(h) {
+  var c = hexRgb(h);
+  return (0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]) / 255;
+}
+function paintColumn(colEl, prefix) {
+  var th = THEMES[prefix];
+  if (!th) { return; }
+  var list = colEl.getElementsByClassName('case');
+  for (var i = 0; i < list.length; i++) {
+    var top = mixHex(th.from, th.to, i / list.length);
+    var bot = mixHex(th.from, th.to, (i + 1) / list.length);
+    list[i].style.background = 'linear-gradient(180deg,' + top + ',' + bot + ')';
+    list[i].style.color = ((lumHex(top) + lumHex(bot)) / 2 > 0.55) ? th.light : th.dark;
+  }
+}
 // Flash limité à la colonne (jaune pâle = TP étoile, blanc = recommencer)
 function flash(colEl, color) {
   var f = document.getElementById('flash');
@@ -179,6 +213,7 @@ function buildColumn(colId, prefix, kid) {
   };
   s.appendChild(r);
   refreshStars();
+  paintColumn(col, prefix);
 }
 function countDone(prefix) {
   var missions = missionsFor(prefix);

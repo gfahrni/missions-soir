@@ -1,0 +1,12 @@
+/* mario-peach-v2 — palettes Peach (gauche) et Mario (droite) */
+/* Pas d'images externes : degrade CSS + emoji dans le HTML (offline, leger, iOS 15 OK) */
+/* v2 : les fonds degrades sont calcules en JS (start -> end, etales sur N cases).
+   Ici restent juste les couleurs de texte par defaut, bordures et boutons. */
+
+.theme-peach { color: #6b103f; }
+.theme-peach .case { border-bottom: 3px solid rgba(255, 255, 255, .6); }
+.theme-peach button { background: #fff; color: #9d174d; border: 2px solid #ffcc33; }
+
+.theme-mario { color: #fff; }
+.theme-mario .case { border-bottom: 3px solid #000; }
+.theme-mario button { background: #ffcb05; color: #111; border: 2px solid #fff; }
