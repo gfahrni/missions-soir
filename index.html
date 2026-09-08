@@ -29,6 +29,9 @@
   @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
   .reset { font-size: 1rem; min-height: 44px; min-width: 0; padding: 8px 16px; border-radius: 12px; background: rgba(0,0,0,.35); color: inherit; border: 2px solid currentColor; }
   .arrow { font-size: 2rem; opacity: .6; }
+  #flash { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #ffcb05; opacity: 0; pointer-events: none; z-index: 999; }
+  #flash.go { animation: starflash .55s ease; }
+  @keyframes starflash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
 </style>
 </head>
 <body>
@@ -37,6 +40,7 @@
   <div class="col left theme-peach" id="colL"></div>
   <div class="col right theme-mario" id="colR"></div>
 </div>
+<div id="flash"></div>
 <script>
 var DEFAULTS = {
   peach: [
@@ -106,23 +110,13 @@ function el(tag, cls, text) {
   if (text) { d.textContent = text; }
   return d;
 }
-// Glissé animé vers le bas (maison, iOS 15 safe : pas de scroll-behavior smooth)
-function glideTo(colEl, target) {
-  var start = colEl.scrollTop;
-  var dist = target - start;
-  if (dist < 2) { return; }
-  var t0 = Date.now();
-  var dur = 800;
-  function step() {
-    var t = Date.now() - t0;
-    if (t >= dur) { colEl.scrollTop = target; return; }
-    var p = t / dur;
-    var e = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-    colEl.scrollTop = start + dist * e;
-    if (window.requestAnimationFrame) { window.requestAnimationFrame(step); }
-    else { setTimeout(step, 16); }
-  }
-  step();
+// Flash jaune étoile qui habille la téléportation
+function flash() {
+  var f = document.getElementById('flash');
+  if (!f) { return; }
+  f.className = '';
+  void f.offsetWidth;
+  f.className = 'go';
 }
 function buildColumn(colId, prefix, kid) {
   var col = document.getElementById(colId);
@@ -145,7 +139,11 @@ function buildColumn(colId, prefix, kid) {
         refreshStars();
         if (now && countDone(prefix) === missions.length) {
           var s = document.getElementById('star-' + prefix);
-          if (s && s.parentNode) { glideTo(s.parentNode, s.parentNode.scrollHeight); }
+          if (s && s.parentNode) {
+            var colEl = s.parentNode;
+            flash();
+            setTimeout(function() { colEl.scrollTop = colEl.scrollHeight; }, 150);
+          }
         }
       };
       c.appendChild(b);
