@@ -32,20 +32,36 @@
 </style>
 </head>
 <body>
-<div id="topbar">🌙 Missions du soir<span id="size">…</span><span id="last"></span></div>
+<div id="topbar">🌙 Missions du soir<span id="size">…</span></div>
 <div class="layout">
   <div class="col left theme-peach" id="colL"></div>
   <div class="col right theme-mario" id="colR"></div>
 </div>
 <script>
-var DEFAULT_MISSIONS = [
-  { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
-  { id: 'table', label: 'Table', emoji: '🍽️' },
-  { id: 'dents', label: 'Dents', emoji: '🪥' },
-  { id: 'pyjama', label: 'Pyjama', emoji: '🌙' },
-  { id: 'habits', label: 'Habits', emoji: '👕' },
-  { id: 'cheveux', label: 'Cheveux', emoji: '💇' }
-];
+var DEFAULTS = {
+  peach: [
+    { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
+    { id: 'table', label: 'Table', emoji: '🍽️' },
+    { id: 'dents', label: 'Dents', emoji: '🪥' },
+    { id: 'pyjama', label: 'Pyjama', emoji: '🌙' },
+    { id: 'habits', label: 'Habits', emoji: '👕' },
+    { id: 'cheveux', label: 'Cheveux', emoji: '💇' }
+  ],
+  mario: [
+    { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
+    { id: 'table', label: 'Table', emoji: '🍽️' },
+    { id: 'dents', label: 'Dents', emoji: '🪥' },
+    { id: 'pyjama', label: 'Pyjama', emoji: '🌙' },
+    { id: 'habits', label: 'Habits', emoji: '👕' },
+    { id: 'lunettes', label: 'Lunettes', emoji: '👓' }
+  ]
+};
+function missionsFor(prefix) {
+  if (window.MISSION_SETS && window.MISSION_SETS[prefix] && window.MISSION_SETS[prefix].length) {
+    return window.MISSION_SETS[prefix];
+  }
+  return DEFAULTS[prefix] || DEFAULTS.peach;
+}
 var mem = {};
 function key(prefix, id) { return 'mario-peach-v1-' + prefix + '-' + id; }
 function isDone(prefix, id) {
@@ -65,19 +81,10 @@ function getLast() {
   catch (e) {}
   return parseInt(mem[LS_LAST] || '0', 10) || 0;
 }
-function renderLast(t) {
-  var lastEl = document.getElementById('last');
-  if (!lastEl) { return; }
-  if (!t) { lastEl.textContent = ''; return; }
-  var d = new Date(t);
-  var mm = d.getMinutes();
-  lastEl.textContent = '• ' + d.getHours() + 'h' + (mm < 10 ? '0' + mm : mm);
-}
 function touch() {
   var t = Date.now();
   try { localStorage.setItem(LS_LAST, String(t)); }
   catch (e) { mem[LS_LAST] = String(t); }
-  renderLast(t);
 }
 function clearAll() {
   try {
@@ -91,9 +98,7 @@ function clearAll() {
   mem = {};
 }
 function checkExpiry() {
-  var last = getLast();
-  if (last && (Date.now() - last > TIMEOUT_MS)) { clearAll(); last = 0; }
-  renderLast(last);
+  if (getLast() && (Date.now() - getLast() > TIMEOUT_MS)) { clearAll(); }
 }
 function el(tag, cls, text) {
   var d = document.createElement(tag);
@@ -103,7 +108,7 @@ function el(tag, cls, text) {
 }
 function buildColumn(colId, prefix, kid) {
   var col = document.getElementById(colId);
-  var missions = window.MISSIONS || DEFAULT_MISSIONS;
+  var missions = missionsFor(prefix);
   col.innerHTML = '';
   for (var i = 0; i < missions.length; i++) {
     (function(m, idx) {
@@ -120,6 +125,10 @@ function buildColumn(colId, prefix, kid) {
         c.className = now ? 'case done' : 'case';
         b.textContent = now ? 'Fait ✅' : 'À faire 👆';
         refreshStars();
+        if (now && countDone(prefix) === missions.length) {
+          var s = document.getElementById('star-' + prefix);
+          if (s && s.parentNode) { s.parentNode.scrollTop = s.parentNode.scrollHeight; }
+        }
       };
       c.appendChild(b);
       c.appendChild(el('div', 'arrow', '↓'));
@@ -140,7 +149,7 @@ function buildColumn(colId, prefix, kid) {
   refreshStars();
 }
 function countDone(prefix) {
-  var missions = window.MISSIONS || DEFAULT_MISSIONS;
+  var missions = missionsFor(prefix);
   var n = 0;
   for (var j = 0; j < missions.length; j++) { if (isDone(prefix, missions[j].id)) { n++; } }
   return n;
@@ -150,7 +159,7 @@ function refreshStars() {
   refreshStar('mario');
 }
 function refreshStar(prefix) {
-  var missions = window.MISSIONS || DEFAULT_MISSIONS;
+  var missions = missionsFor(prefix);
   var s = document.getElementById('star-' + prefix);
   if (!s) { return; }
   var other = prefix === 'peach' ? 'mario' : 'peach';
@@ -192,7 +201,11 @@ if (window.fetch) {
     if (!r.ok) { throw new Error('http ' + r.status); }
     return r.json();
   }).then(function(list) {
-    if (list && list.length) { window.MISSIONS = list; }
+    if (list && list.peach && list.peach.length && list.mario && list.mario.length) {
+      window.MISSION_SETS = list;
+    } else if (list && list.length) {
+      window.MISSION_SETS = { peach: list, mario: list };
+    }
     buildAll();
   }).catch(function() { buildAll(); });
 } else {
