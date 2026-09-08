@@ -22,6 +22,9 @@
   .case button { font-size: 1.3rem; min-height: 64px; min-width: 180px; padding: 14px 28px; border-radius: 16px; border: 0; touch-action: manipulation; }
   .case button:active { transform: scale(.95); }
   .case.done { outline: 5px solid #22c55e; outline-offset: -5px; }
+  .case { position: relative; }
+  .case.done::before { content: ''; position: absolute; left: 0; top: 0; right: 0; bottom: 0; background: rgba(110,110,118,.75); }
+  .case.done > * { position: relative; z-index: 1; }
   .case.done button { background: #22c55e; color: #fff; border: 2px solid #fff; }
   .star { font-size: 4.5rem; line-height: 1; }
   .star.locked { filter: grayscale(1); opacity: .5; }
