@@ -29,7 +29,7 @@
   @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
   .reset { font-size: 1rem; min-height: 44px; min-width: 0; padding: 8px 16px; border-radius: 12px; background: rgba(0,0,0,.35); color: inherit; border: 2px solid currentColor; }
   .arrow { font-size: 2rem; opacity: .6; }
-  #flash { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #ffcb05; opacity: 0; pointer-events: none; z-index: 999; }
+  #flash { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #fff3bf; opacity: 0; pointer-events: none; z-index: 999; }
   #flash.go { animation: starflash .55s ease; }
   @keyframes starflash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
 </style>
@@ -110,10 +110,18 @@ function el(tag, cls, text) {
   if (text) { d.textContent = text; }
   return d;
 }
-// Flash jaune étoile qui habille la téléportation
-function flash() {
+// Flash limité à la colonne (jaune pâle = TP étoile, blanc = recommencer)
+function flash(colEl, color) {
   var f = document.getElementById('flash');
   if (!f) { return; }
+  if (color) { f.style.background = color; }
+  if (colEl) {
+    var r = colEl.getBoundingClientRect();
+    f.style.left = r.left + 'px';
+    f.style.top = r.top + 'px';
+    f.style.width = r.width + 'px';
+    f.style.height = r.height + 'px';
+  }
   f.className = '';
   void f.offsetWidth;
   f.className = 'go';
@@ -141,7 +149,7 @@ function buildColumn(colId, prefix, kid) {
           var s = document.getElementById('star-' + prefix);
           if (s && s.parentNode) {
             var colEl = s.parentNode;
-            flash();
+            flash(colEl, '#fff3bf');
             setTimeout(function() { colEl.scrollTop = colEl.scrollHeight; }, 150);
           }
         }
@@ -160,6 +168,11 @@ function buildColumn(colId, prefix, kid) {
     touch();
     buildColumn(colId, prefix, kid);
     refreshStars();
+    var colEl = document.getElementById(colId);
+    if (colEl) {
+      flash(colEl, '#ffffff');
+      setTimeout(function() { colEl.scrollTop = 0; }, 150);
+    }
   };
   s.appendChild(r);
   refreshStars();
@@ -197,6 +210,11 @@ function refreshStar(prefix) {
     var kid = prefix === 'peach' ? '👑 Peach' : '🍄 Mario';
     buildColumn(colId, prefix, kid);
     refreshStars();
+    var colEl = document.getElementById(colId);
+    if (colEl) {
+      flash(colEl, '#ffffff');
+      setTimeout(function() { colEl.scrollTop = 0; }, 150);
+    }
   };
   s.appendChild(r);
   s.appendChild(el('div', 'arrow', '↑'));
