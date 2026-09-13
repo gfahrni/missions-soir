@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Missions">
 <title>Missions du soir 🌙</title>
-<link rel="stylesheet" href="mario-peach-v2.css">
+<link rel="stylesheet" href="mario-peach-v3.css">
 <style>
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #111; color: #fff; font-family: -apple-system, system-ui, sans-serif; }
@@ -43,8 +43,8 @@
 <body>
 <div id="topbar">🌙 Missions du soir<span id="size">…</span></div>
 <div class="layout">
-  <div class="col left theme-peach" id="colL"></div>
-  <div class="col right theme-mario" id="colR"></div>
+  <div class="col left theme-mario" id="colL"></div>
+  <div class="col right theme-peach" id="colR"></div>
 </div>
 <div id="flash"></div>
 <script>
@@ -66,6 +66,15 @@ var DEFAULTS = {
     { id: 'lunettes', label: 'Lunettes', emoji: '👓' }
   ]
 };
+// Ordre des colonnes : pour inverser Mario/Peach, il suffit de permuter ces 2 lignes.
+var COLS = [
+  { id: 'colL', prefix: 'mario', kid: '🍄 Mario' },
+  { id: 'colR', prefix: 'peach', kid: '👑 Peach' }
+];
+function colConfig(prefix) {
+  for (var i = 0; i < COLS.length; i++) { if (COLS[i].prefix === prefix) { return COLS[i]; } }
+  return { id: 'colL', kid: '👑 Peach' };
+}
 function missionsFor(prefix) {
   if (window.MISSION_SETS && window.MISSION_SETS[prefix] && window.MISSION_SETS[prefix].length) {
     return window.MISSION_SETS[prefix];
@@ -290,8 +299,8 @@ function refreshStar(prefix) {
   r.onclick = function() {
     for (var k = 0; k < missions.length; k++) { setDone(prefix, missions[k].id, false); }
     touch();
-    var colId = prefix === 'peach' ? 'colL' : 'colR';
-    var kid = prefix === 'peach' ? '👑 Peach' : '🍄 Mario';
+    var colId = colConfig(prefix).id;
+    var kid = colConfig(prefix).kid;
     buildColumn(colId, prefix, kid);
     refreshStars();
     var colEl = document.getElementById(colId);
@@ -304,8 +313,9 @@ function refreshStar(prefix) {
   s.appendChild(el('div', 'arrow', '↑'));
 }
 function buildAll() {
-  buildColumn('colL', 'peach', '👑 Peach');
-  buildColumn('colR', 'mario', '🍄 Mario');
+  for (var i = 0; i < COLS.length; i++) {
+    buildColumn(COLS[i].id, COLS[i].prefix, COLS[i].kid);
+  }
 }
 function info() {
   document.getElementById('size').textContent = window.innerWidth + '×' + window.innerHeight;
