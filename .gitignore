@@ -1,0 +1,8 @@
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+Thumbs.db
+desktop.ini
+*.tmp
+*.log
