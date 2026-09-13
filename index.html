@@ -32,6 +32,9 @@
   @keyframes pop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
   .reset { font-size: 1rem; min-height: 44px; min-width: 0; padding: 8px 16px; border-radius: 12px; background: rgba(0,0,0,.35); color: inherit; border: 2px solid currentColor; }
   .arrow { font-size: 2rem; opacity: .6; }
+  .video-case video { width: 100%; max-width: 560px; border-radius: 14px; background: #000; display: block; }
+  .vid-controls { display: flex; gap: 16px; }
+  .video-case .vid-btn { font-size: 1.5rem; min-height: 56px; min-width: 76px; padding: 8px 18px; border-radius: 14px; border: 0; touch-action: manipulation; }
   #flash { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #fff3bf; opacity: 0; pointer-events: none; z-index: 999; }
   #flash.go { animation: starflash .55s ease; }
   @keyframes starflash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
@@ -163,13 +166,56 @@ function flash(colEl, color) {
   void f.offsetWidth;
   f.className = 'go';
 }
+function videoCase(col) {
+  var c = el('div', 'case video-case');
+  c.appendChild(el('h2', null, '🪥 La vidéo des dents'));
+  var v = el('video', 'vid');
+  v.src = 'video/tooth_time.mp4';
+  v.preload = 'metadata';
+  v.setAttribute('playsinline', '');
+  v.setAttribute('webkit-playsinline', '');
+  c.appendChild(v);
+  var bar = el('div', 'vid-controls');
+  var play = el('button', 'vid-btn', '▶');
+  var reset = el('button', 'vid-btn', '↺');
+  play.onclick = function() {
+    if (v.paused) { v.play(); } else { v.pause(); }
+  };
+  reset.onclick = function() {
+    v.pause();
+    try { v.currentTime = 0; } catch (e) {}
+    play.textContent = '▶';
+  };
+  v.onplay = function() { play.textContent = '⏸'; };
+  v.onpause = function() { play.textContent = '▶'; };
+  v.onended = function() {
+    play.textContent = '▶';
+    flash(col, '#fff3bf');
+    var target = col._dentsCase;
+    if (target) { setTimeout(function() { col.scrollTop = target.offsetTop; }, 150); }
+  };
+  bar.appendChild(play);
+  bar.appendChild(reset);
+  c.appendChild(bar);
+  c.appendChild(el('div', 'arrow', '↓'));
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function(entries) {
+      for (var e = 0; e < entries.length; e++) {
+        if (!entries[e].isIntersecting) { v.pause(); }
+      }
+    }, { root: col, threshold: 0.5 }).observe(c);
+  }
+  return c;
+}
 function buildColumn(colId, prefix, kid) {
   var col = document.getElementById(colId);
   var missions = missionsFor(prefix);
   col.innerHTML = '';
   for (var i = 0; i < missions.length; i++) {
+    if (missions[i].id === 'dents') { col.appendChild(videoCase(col)); }
     (function(m, idx) {
       var c = el('div', 'case');
+      if (m.id === 'dents') { col._dentsCase = c; }
       var done = isDone(prefix, m.id);
       if (done) { c.className = 'case done'; }
       c.appendChild(el('h2', null, m.emoji + ' ' + m.label));
