@@ -1,4 +1,4 @@
-/* mario-peach-v3 — palettes Mario (gauche) et Peach (droite) */
+/* mario-peach-v4 — palettes Mario (gauche) et Peach (droite) */
 /* Pas d'images externes : degrade CSS + emoji dans le HTML (offline, leger, iOS 15 OK) */
 /* v2 : les fonds degrades sont calcules en JS (start -> end, etales sur N cases).
    Ici restent juste les couleurs de texte par defaut, bordures et boutons. */

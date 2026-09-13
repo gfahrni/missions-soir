@@ -11,7 +11,7 @@ Déployé sur **GitHub Pages**.
 
 ## Structure
 - `index.html` : layout 2 colonnes + logique (JS simple, tout inline).
-- `mario-peach-v3.css` : thème versionné. Renommer à chaque changement visuel (ex: `mario-peach-v4.css`) pour forcer le cache Safari. Les fonds dégradés sont calculés en JS (`THEMES` start→end, étalés sur N cases) : ajouter des missions ne touche ni le CSS ni le JS.
+- `mario-peach-v4.css` : thème versionné. Renommer à chaque changement visuel (ex: `mario-peach-v5.css`) pour forcer le cache Safari. Les fonds dégradés sont calculés en JS (`THEMES` start→end, étalés sur N cases) : ajouter des missions ne touche ni le CSS ni le JS.
 - `missions.json` : objet `{peach: [...], mario: [...]}` avec les missions `{id, label, emoji}` (fallback en dur dans le JS si fetch échoue).
 
 ## Contraintes iPad mini 4 (importantes)

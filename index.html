@@ -7,12 +7,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Missions">
 <title>Missions du soir 🌙</title>
-<link rel="stylesheet" href="mario-peach-v3.css">
+<link rel="stylesheet" href="mario-peach-v4.css">
 <style>
   * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #111; color: #fff; font-family: -apple-system, system-ui, sans-serif; }
-  #topbar { height: calc(48px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); display: flex; align-items: center; justify-content: center; background: #000; font-size: 1rem; font-weight: 600; }
-  #topbar span { opacity: .6; font-weight: 400; margin-left: 8px; font-size: .85rem; }
+  #topbar { height: calc(48px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); display: flex; align-items: stretch; background: #000; font-size: 1rem; }
+  .topzone { -webkit-appearance: none; appearance: none; flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; background: transparent; border: 0; border-radius: 0; color: #fff; font: inherit; font-weight: 600; touch-action: manipulation; }
+  .topzone:active { background: rgba(255,255,255,.14); }
+  .topzone .pname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topzone .pprog { opacity: .6; font-weight: 400; font-size: .85rem; }
   .layout { display: flex; height: calc(100vh - 48px - env(safe-area-inset-top)); height: calc(100dvh - 48px - env(safe-area-inset-top)); }
   .col { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: y mandatory; }
   .col.left { border-right: 2px solid #000; }
@@ -41,7 +44,10 @@
 </style>
 </head>
 <body>
-<div id="topbar">🌙 Missions du soir<span id="size">…</span></div>
+<div id="topbar">
+  <button class="topzone" id="top-colL" type="button"></button>
+  <button class="topzone" id="top-colR" type="button"></button>
+</div>
 <div class="layout">
   <div class="col left theme-mario" id="colL"></div>
   <div class="col right theme-peach" id="colR"></div>
@@ -221,9 +227,14 @@ function buildColumn(colId, prefix, kid) {
   var missions = missionsFor(prefix);
   col.innerHTML = '';
   for (var i = 0; i < missions.length; i++) {
-    if (missions[i].id === 'dents') { col.appendChild(videoCase(col)); }
+    if (missions[i].id === 'dents') {
+      var vc = videoCase(col);
+      vc.setAttribute('data-mission-id', missions[i].id);
+      col.appendChild(vc);
+    }
     (function(m, idx) {
       var c = el('div', 'case');
+      c.setAttribute('data-mission-id', m.id);
       if (m.id === 'dents') { col._dentsCase = c; }
       var done = isDone(prefix, m.id);
       if (done) { c.className = 'case done'; }
@@ -279,6 +290,33 @@ function countDone(prefix) {
 function refreshStars() {
   refreshStar('peach');
   refreshStar('mario');
+  updateTopbar();
+}
+// Résumé par colonne dans la topbar + TP vers la 1re mission non faite.
+function updateTopbar() {
+  for (var i = 0; i < COLS.length; i++) {
+    var cfg = COLS[i];
+    var z = document.getElementById('top-' + cfg.id);
+    if (!z) { continue; }
+    var missions = missionsFor(cfg.prefix);
+    z.innerHTML = '';
+    z.appendChild(el('span', 'pname', cfg.kid));
+    z.appendChild(el('span', 'pprog', countDone(cfg.prefix) + '/' + missions.length));
+    z.onclick = (function(prefix) { return function() { gotoNext(prefix); }; })(cfg.prefix);
+  }
+}
+function gotoNext(prefix) {
+  var colEl = document.getElementById(colConfig(prefix).id);
+  if (!colEl) { return; }
+  var missions = missionsFor(prefix);
+  var targetId = null;
+  for (var i = 0; i < missions.length; i++) {
+    if (!isDone(prefix, missions[i].id)) { targetId = missions[i].id; break; }
+  }
+  if (!targetId) { colEl.scrollTop = colEl.scrollHeight; return; }
+  var target = colEl.querySelector('[data-mission-id="' + targetId + '"]');
+  if (!target) { return; }
+  colEl.scrollTop += target.getBoundingClientRect().top - colEl.getBoundingClientRect().top;
 }
 function refreshStar(prefix) {
   var missions = missionsFor(prefix);
@@ -317,12 +355,6 @@ function buildAll() {
     buildColumn(COLS[i].id, COLS[i].prefix, COLS[i].kid);
   }
 }
-function info() {
-  document.getElementById('size').textContent = window.innerWidth + '×' + window.innerHeight;
-}
-window.addEventListener('resize', info);
-window.addEventListener('orientationchange', info);
-info();
 checkExpiry();
 if (window.fetch) {
   fetch('missions.json').then(function(r) {
