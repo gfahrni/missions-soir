@@ -9,7 +9,7 @@
   ],
   "mario": [
     { "id": "frimousse", "label": "Frimousse", "emoji": "🧼" },
-    { "id": "table", "label": "Table", "emoji": "🍽️" },
+    { "id": "aspirateur", "label": "Aspirateur", "emoji": "🧹" },
     { "id": "dents", "label": "Dents", "emoji": "🪥" },
     { "id": "pyjama", "label": "Pyjama", "emoji": "🌙" },
     { "id": "habits", "label": "Habits", "emoji": "👕" },
