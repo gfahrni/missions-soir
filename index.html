@@ -239,7 +239,7 @@ function buildColumn(colId, prefix, kid) {
       var done = isDone(prefix, m.id);
       if (done) { c.className = 'case done'; }
       c.appendChild(el('h2', null, m.emoji + ' ' + m.label));
-      c.appendChild(el('p', null, kid + ' • mission ' + (idx + 1) + ' / ' + missions.length));
+      c.appendChild(el('p', null, kid + ' • Mission n°' + (idx + 1)));
       var b = el('button', null, done ? 'Fait ✅' : 'À faire 👆');
       b.onclick = function() {
         var now = !isDone(prefix, m.id);
