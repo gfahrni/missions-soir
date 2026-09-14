@@ -304,6 +304,12 @@ function refreshGift(prefix) {
     img.className = 'card-img';
     img.src = CULTURE_IMG + card.id + '.webp';
     img.alt = card.title;
+    img.onload = function() {
+      var colEl = document.getElementById(colConfig(prefix).id);
+      if (colEl && colEl.scrollHeight - colEl.scrollTop - colEl.clientHeight < 200) {
+        colEl.scrollTop = colEl.scrollHeight;
+      }
+    };
     old.appendChild(img);
     old.appendChild(el('div', 'card-title', card.title));
     old.appendChild(el('p', 'card-desc', card.desc));
@@ -379,11 +385,23 @@ function buildColumn(colId, prefix, kid) {
         b.textContent = now ? 'Fait ✅' : 'À faire 👆';
         refreshStars();
         if (now && countDone(prefix) === missions.length) {
-          var s = document.getElementById('star-' + prefix);
-          if (s && s.parentNode) {
-            var colEl = s.parentNode;
-            flash(colEl, '#fff3bf');
-            setTimeout(function() { colEl.scrollTop = colEl.scrollHeight; }, 150);
+          if (isWonAll()) {
+            // Les 2 ont fini : TP des 2 colonnes vers étoile + cadeau
+            for (var ci = 0; ci < COLS.length; ci++) {
+              (function(colId) {
+                var colEl = document.getElementById(colId);
+                if (!colEl) { return; }
+                flash(colEl, '#fff3bf');
+                setTimeout(function() { colEl.scrollTop = colEl.scrollHeight; }, 150);
+              })(COLS[ci].id);
+            }
+          } else {
+            var s = document.getElementById('star-' + prefix);
+            if (s && s.parentNode) {
+              var colEl = s.parentNode;
+              flash(colEl, '#fff3bf');
+              setTimeout(function() { colEl.scrollTop = colEl.scrollHeight; }, 150);
+            }
           }
         }
       };
