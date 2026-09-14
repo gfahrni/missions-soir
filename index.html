@@ -38,6 +38,11 @@
   .video-case video { width: 100%; max-width: 560px; border-radius: 14px; background: #000; display: block; }
   .vid-controls { display: flex; gap: 16px; }
   .video-case .vid-btn { font-size: 1.5rem; min-height: 56px; min-width: 76px; padding: 8px 18px; border-radius: 14px; border: 0; touch-action: manipulation; }
+  .case.gift { background: linear-gradient(180deg, #fff7cc, #f5b301); color: #5c3d00; }
+  .gift .card-img { width: 100%; max-width: 420px; border-radius: 14px; background: #fff; display: block; }
+  .gift .card-title { font-size: 1.8rem; font-weight: 700; }
+  .gift .card-desc { font-size: 1.15rem; }
+  .gift .card-id { opacity: .6; font-size: .85rem; }
   #flash { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #fff3bf; opacity: 0; pointer-events: none; z-index: 999; }
   #flash.go { animation: starflash .55s ease; }
   @keyframes starflash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
@@ -158,11 +163,15 @@ function paintColumn(colEl, prefix) {
   var th = THEMES[prefix];
   if (!th) { return; }
   var list = colEl.getElementsByClassName('case');
-  for (var i = 0; i < list.length; i++) {
-    var top = mixHex(th.from, th.to, i / list.length);
-    var bot = mixHex(th.from, th.to, (i + 1) / list.length);
-    list[i].style.background = 'linear-gradient(180deg,' + top + ',' + bot + ')';
-    list[i].style.color = ((lumHex(top) + lumHex(bot)) / 2 > 0.55) ? th.light : th.dark;
+  var items = [];
+  for (var k = 0; k < list.length; k++) {
+    if (list[k].className.indexOf('gift') < 0) { items.push(list[k]); }
+  }
+  for (var i = 0; i < items.length; i++) {
+    var top = mixHex(th.from, th.to, i / items.length);
+    var bot = mixHex(th.from, th.to, (i + 1) / items.length);
+    items[i].style.background = 'linear-gradient(180deg,' + top + ',' + bot + ')';
+    items[i].style.color = ((lumHex(top) + lumHex(bot)) / 2 > 0.55) ? th.light : th.dark;
   }
 }
 // Flash limité à la colonne (jaune pâle = TP étoile, blanc = recommencer)
@@ -180,6 +189,127 @@ function flash(colEl, color) {
   f.className = '';
   void f.offsetWidth;
   f.className = 'go';
+}
+// Cadeau 🎁 : 1 carte culture par colonne quand les 2 sont à 6/6.
+// Journée logique bascule à 4h, slot matin (4h-16h) / soir (16h-4h).
+// Sélection déterministe : hash(date|joueur|slot) dans le pool du thème du jour.
+var CULTURE_URL = 'https://gfahrni.github.io/kids-culturecards-ch/';
+var CULTURE_IMG = CULTURE_URL + 'images/cartes-500/';
+var WEEK_THEME = { 0: 'animaux', 1: 'drapeaux', 2: 'capitales-chefs-lieux', 3: 'montagnes', 4: 'lacs-mers-oceans-rivieres', 5: 'monuments', 6: 'merveilles-et-espace' };
+var THEME_LABEL = { 'drapeaux': '🚩 Drapeaux', 'capitales-chefs-lieux': '🏛️ Capitales', 'montagnes': '⛰️ Montagnes', 'lacs-mers-oceans-rivieres': '🌊 Lacs & rivières', 'monuments': '🗿 Monuments', 'merveilles-et-espace': '🚀 Merveilles & espace', 'animaux': '🐾 Animaux' };
+function giftInfo() {
+  var now = new Date();
+  var h = now.getHours();
+  var d = (h < 4) ? new Date(now.getTime() - 24 * 3600 * 1000) : now;
+  var ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  var slot = (h >= 16 || h < 4) ? 'pm' : 'am';
+  return { date: ds, slot: slot, theme: WEEK_THEME[d.getDay()] };
+}
+function hashStr(s) {
+  var h = 2166136261;
+  for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+var CULTURE_DATA = null;
+var CULTURE_LOADING = false;
+var CULTURE_WAITERS = [];
+function cultureLoad(cb) {
+  if (CULTURE_DATA) { cb(CULTURE_DATA); return; }
+  CULTURE_WAITERS.push(cb);
+  if (CULTURE_LOADING) { return; }
+  CULTURE_LOADING = true;
+  fetch(CULTURE_URL).then(function(r) {
+    if (!r.ok) { throw new Error('http ' + r.status); }
+    return r.text();
+  }).then(function(html) {
+    var a = html.indexOf('const DATA =');
+    var b = (a < 0) ? -1 : html.indexOf('[', a);
+    var c = (b < 0) ? -1 : html.indexOf('const THEMES', b);
+    if (b < 0 || c < 0) { throw new Error('parse'); }
+    var data = JSON.parse(html.substring(b, c).replace(/;\s*$/, ''));
+    CULTURE_DATA = data;
+    var w = CULTURE_WAITERS; CULTURE_WAITERS = [];
+    for (var i = 0; i < w.length; i++) { w[i](data); }
+  }).catch(function() {
+    CULTURE_LOADING = false;
+    var w = CULTURE_WAITERS; CULTURE_WAITERS = [];
+    for (var i = 0; i < w.length; i++) { w[i](null); }
+  });
+}
+// Les 4 tirages du jour (mario|am, mario|pm, peach|am, peach|pm) : tous
+// différents, calculés dans un ordre fixe pour rester stables.
+function giftCard(pool, dateStr, prefix, slot) {
+  if (!pool || !pool.length) { return null; }
+  var order = ['mario|am', 'mario|pm', 'peach|am', 'peach|pm'];
+  var me = prefix + '|' + slot;
+  var used = {};
+  var mine = null;
+  for (var k = 0; k < order.length; k++) {
+    var idx = hashStr(dateStr + '|' + order[k]) % pool.length;
+    var guard = 0;
+    while (used[idx] && guard < pool.length) { idx = (idx + 1) % pool.length; guard++; }
+    used[idx] = true;
+    if (order[k] === me) { mine = pool[idx]; }
+  }
+  return mine;
+}
+function isWonAll() {
+  var mp = missionsFor('mario'), pp = missionsFor('peach');
+  return countDone('mario') === mp.length && countDone('peach') === pp.length;
+}
+function refreshGift(prefix) {
+  var cfg = colConfig(prefix);
+  var col = document.getElementById(cfg.id);
+  var star = document.getElementById('star-' + prefix);
+  if (!col || !star) { return; }
+  var old = document.getElementById('gift-' + prefix);
+  if (!isWonAll()) {
+    if (old && old.parentNode) { old.parentNode.removeChild(old); }
+    return;
+  }
+  var g = giftInfo();
+  if (!old) {
+    old = el('div', 'case gift');
+    old.id = 'gift-' + prefix;
+    if (star.nextSibling) { col.insertBefore(old, star.nextSibling); } else { col.appendChild(old); }
+  }
+  var gkey = g.date + '|' + g.slot + '|' + prefix;
+  if (old._gkey === gkey && old._filled) { return; }
+  old._gkey = gkey;
+  old._filled = false;
+  old.innerHTML = '';
+  old.appendChild(el('h2', null, '🎁 Surprise !'));
+  old.appendChild(el('p', null, THEME_LABEL[g.theme] + ' • ' + (g.slot === 'am' ? 'carte du matin ☀️' : 'carte du soir 🌙')));
+  old.appendChild(el('p', null, 'Chargement de ta carte... ⏳'));
+  cultureLoad(function(data) {
+    if (old._gkey !== gkey) { return; }
+    if (!data) {
+      old.innerHTML = '';
+      old.appendChild(el('h2', null, '🎁 Surprise !'));
+      old.appendChild(el('p', null, 'Oups, les cartes ne chargent pas 😢'));
+      var rb = el('button', null, '↻ Réessayer');
+      rb.onclick = function() { old._gkey = ''; old._filled = false; refreshGift(prefix); };
+      old.appendChild(rb);
+      return;
+    }
+    var pool = [];
+    for (var i = 0; i < data.length; i++) { if (data[i].t === g.theme) { pool.push(data[i]); } }
+    pool.sort(function(a, b) { return a.id < b.id ? -1 : (a.id > b.id ? 1 : 0); });
+    var card = giftCard(pool, g.date, prefix, g.slot);
+    old.innerHTML = '';
+    old.appendChild(el('h2', null, '🎁 Surprise !'));
+    old.appendChild(el('p', null, THEME_LABEL[g.theme] + ' • ' + (g.slot === 'am' ? 'carte du matin ☀️' : 'carte du soir 🌙')));
+    if (!card) { old.appendChild(el('p', null, 'Pas de carte aujourd’hui 😢')); return; }
+    var img = document.createElement('img');
+    img.className = 'card-img';
+    img.src = CULTURE_IMG + card.id + '.webp';
+    img.alt = card.title;
+    old.appendChild(img);
+    old.appendChild(el('div', 'card-title', card.title));
+    old.appendChild(el('p', 'card-desc', card.desc));
+    old.appendChild(el('div', 'card-id', card.id));
+    old._filled = true;
+  });
 }
 function videoCase(col) {
   var c = el('div', 'case video-case');
@@ -290,6 +420,8 @@ function countDone(prefix) {
 function refreshStars() {
   refreshStar('peach');
   refreshStar('mario');
+  refreshGift('peach');
+  refreshGift('mario');
   updateTopbar();
 }
 // Résumé par colonne dans la topbar + TP vers la 1re mission non faite.
