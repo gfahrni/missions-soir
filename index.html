@@ -191,7 +191,7 @@ function flash(colEl, color) {
   f.className = 'go';
 }
 // Cadeau 🎁 : 1 carte culture par colonne quand les 2 sont à 6/6.
-// Journée logique bascule à 4h, slot matin (4h-16h) / soir (16h-4h).
+// Journée logique bascule à 4h, slots matin (4h-10h) / midi (10h-16h) / soir (16h-4h).
 // Sélection déterministe : hash(date|joueur|slot) dans le pool du thème du jour.
 var CULTURE_URL = 'https://gfahrni.github.io/kids-culturecards-ch/';
 var CULTURE_IMG = CULTURE_URL + 'images/cartes-500/';
@@ -202,7 +202,10 @@ function giftInfo() {
   var h = now.getHours();
   var d = (h < 4) ? new Date(now.getTime() - 24 * 3600 * 1000) : now;
   var ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-  var slot = (h >= 16 || h < 4) ? 'pm' : 'am';
+  var slot;
+  if (h < 4 || h >= 16) { slot = 'pm'; }
+  else if (h < 10) { slot = 'am'; }
+  else { slot = 'mid'; }
   return { date: ds, slot: slot, theme: WEEK_THEME[d.getDay()] };
 }
 function hashStr(s) {
@@ -236,11 +239,11 @@ function cultureLoad(cb) {
     for (var i = 0; i < w.length; i++) { w[i](null); }
   });
 }
-// Les 4 tirages du jour (mario|am, mario|pm, peach|am, peach|pm) : tous
+// Les 6 tirages du jour (mario|am, mario|mid, mario|pm, peach|am, peach|mid, peach|pm) : tous
 // différents, calculés dans un ordre fixe pour rester stables.
 function giftCard(pool, dateStr, prefix, slot) {
   if (!pool || !pool.length) { return null; }
-  var order = ['mario|am', 'mario|pm', 'peach|am', 'peach|pm'];
+  var order = ['mario|am', 'mario|mid', 'mario|pm', 'peach|am', 'peach|mid', 'peach|pm'];
   var me = prefix + '|' + slot;
   var used = {};
   var mine = null;
@@ -252,6 +255,11 @@ function giftCard(pool, dateStr, prefix, slot) {
     if (order[k] === me) { mine = pool[idx]; }
   }
   return mine;
+}
+function slotLabel(slot) {
+  if (slot === 'am') { return 'carte du matin ☀️'; }
+  if (slot === 'mid') { return 'carte du midi 🌤️'; }
+  return 'carte du soir 🌙';
 }
 function isWonAll() {
   var mp = missionsFor('mario'), pp = missionsFor('peach');
@@ -279,7 +287,7 @@ function refreshGift(prefix) {
   old._filled = false;
   old.innerHTML = '';
   old.appendChild(el('h2', null, '🎁 Surprise !'));
-  old.appendChild(el('p', null, THEME_LABEL[g.theme] + ' • ' + (g.slot === 'am' ? 'carte du matin ☀️' : 'carte du soir 🌙')));
+  old.appendChild(el('p', null, THEME_LABEL[g.theme] + ' • ' + slotLabel(g.slot)));
   old.appendChild(el('p', null, 'Chargement de ta carte... ⏳'));
   cultureLoad(function(data) {
     if (old._gkey !== gkey) { return; }
@@ -298,7 +306,7 @@ function refreshGift(prefix) {
     var card = giftCard(pool, g.date, prefix, g.slot);
     old.innerHTML = '';
     old.appendChild(el('h2', null, '🎁 Surprise !'));
-    old.appendChild(el('p', null, THEME_LABEL[g.theme] + ' • ' + (g.slot === 'am' ? 'carte du matin ☀️' : 'carte du soir 🌙')));
+    old.appendChild(el('p', null, THEME_LABEL[g.theme] + ' • ' + slotLabel(g.slot)));
     if (!card) { old.appendChild(el('p', null, 'Pas de carte aujourd’hui 😢')); return; }
     var img = document.createElement('img');
     img.className = 'card-img';
