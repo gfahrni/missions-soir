@@ -61,6 +61,7 @@
 <script>
 var DEFAULTS = {
   peach: [
+    { id: 'toilettes', label: 'Toilettes', emoji: '🚻' },
     { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
     { id: 'table', label: 'Table', emoji: '🍽️' },
     { id: 'dents', label: 'Dents', emoji: '🪥' },
@@ -69,6 +70,7 @@ var DEFAULTS = {
     { id: 'cheveux', label: 'Cheveux', emoji: '💇' }
   ],
   mario: [
+    { id: 'toilettes', label: 'Toilettes', emoji: '🚻' },
     { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
     { id: 'aspirateur', label: 'Aspirateur', emoji: '🧹' },
     { id: 'dents', label: 'Dents', emoji: '🪥' },
@@ -190,7 +192,7 @@ function flash(colEl, color) {
   void f.offsetWidth;
   f.className = 'go';
 }
-// Cadeau 🎁 : 1 carte culture par colonne quand les 2 sont à 6/6.
+// Cadeau 🎁 : 1 carte culture par colonne quand les 2 colonnes sont pleines.
 // Journée logique bascule à 4h, slots matin (4h-10h) / midi (10h-16h) / soir (16h-4h).
 // Sélection déterministe : hash(date|joueur|slot) dans le pool du thème du jour.
 var CULTURE_URL = 'https://gfahrni.github.io/kids-culturecards-ch/';

@@ -1,5 +1,6 @@
 {
   "peach": [
+    { "id": "toilettes", "label": "Toilettes", "emoji": "🚻" },
     { "id": "frimousse", "label": "Frimousse", "emoji": "🧼" },
     { "id": "table", "label": "Table", "emoji": "🍽️" },
     { "id": "dents", "label": "Dents", "emoji": "🪥" },
@@ -8,6 +9,7 @@
     { "id": "cheveux", "label": "Cheveux", "emoji": "💇" }
   ],
   "mario": [
+    { "id": "toilettes", "label": "Toilettes", "emoji": "🚻" },
     { "id": "frimousse", "label": "Frimousse", "emoji": "🧼" },
     { "id": "aspirateur", "label": "Aspirateur", "emoji": "🧹" },
     { "id": "dents", "label": "Dents", "emoji": "🪥" },
