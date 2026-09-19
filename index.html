@@ -115,19 +115,29 @@ function setDone(prefix, id, v) {
   try { localStorage.setItem(key(prefix, id), v ? '1' : '0'); }
   catch (e) { mem[key(prefix, id)] = v ? '1' : '0'; }
 }
-// Horodatage : chaque clic met à jour l'heure, +1h sans clic = reset auto au chargement
-var TIMEOUT_MS = 60 * 60 * 1000; // 1 heure, à ajuster ici
 var LS_PREFIX = 'mario-peach-v1-';
-var LS_LAST = LS_PREFIX + 'last-click';
-function getLast() {
-  try { var v = localStorage.getItem(LS_LAST); if (v) { return parseInt(v, 10) || 0; } }
-  catch (e) {}
-  return parseInt(mem[LS_LAST] || '0', 10) || 0;
+// Tranches horaires (journée logique bascule à 4h) : matin 4h-11h, midi 11h-16h, soir 16h-4h.
+// Fixé sur 11h (petits déjeuners tardifs). Sert au reset global ET aux cartes culture.
+function slotNow() {
+  var now = new Date();
+  var h = now.getHours();
+  var d = (h < 4) ? new Date(now.getTime() - 24 * 3600 * 1000) : now;
+  var ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  var slot;
+  if (h < 4 || h >= 16) { slot = 'pm'; }
+  else if (h < 11) { slot = 'am'; }
+  else { slot = 'mid'; }
+  return { key: ds + '|' + slot, date: ds, slot: slot, theme: WEEK_THEME[d.getDay()] };
 }
-function touch() {
-  var t = Date.now();
-  try { localStorage.setItem(LS_LAST, String(t)); }
-  catch (e) { mem[LS_LAST] = String(t); }
+var LS_SLOT = LS_PREFIX + 'slot';
+function getStoredSlot() {
+  try { var v = localStorage.getItem(LS_SLOT); if (v) { return v; } }
+  catch (e) { return mem[LS_SLOT] || ''; }
+  return '';
+}
+function setStoredSlot(v) {
+  try { localStorage.setItem(LS_SLOT, v); }
+  catch (e) { mem[LS_SLOT] = v; }
 }
 function clearAll() {
   try {
@@ -140,9 +150,15 @@ function clearAll() {
   } catch (e) {}
   mem = {};
 }
-function checkExpiry() {
-  if (getLast() && (Date.now() - getLast() > TIMEOUT_MS)) { clearAll(); return true; }
-  return false;
+// Reset global par créneau : à chaque ouverture/retour dans une nouvelle tranche, tout repart à zéro.
+// clearAll() efface aussi LS_SLOT, on le réécrit juste après.
+function resetIfNewSlot() {
+  var s = slotNow().key;
+  var prev = getStoredSlot();
+  var changed = !!prev && prev !== s;
+  if (changed) { clearAll(); }
+  setStoredSlot(s);
+  return changed;
 }
 // Minuteur par joueur : non-arretable, popup natif au demarrage.
 // Pause par joueur : overlay limite a SA colonne, minuteur fige (pas tout l'ecran).
@@ -221,7 +237,6 @@ function timerClick(prefix) {
   if (st.state === 'idle') {
     if (confirm('Démarrer le Timer ?')) {
       timerSetEnd(prefix, Date.now() + TIMER_MS);
-      touch();
       timerTick();
     }
   }
@@ -259,7 +274,6 @@ function timerHidePause(prefix) {
 function timerPause(prefix) {
   if (timerState(prefix).state !== 'run') { return; }
   timerSetPause(prefix, Date.now());
-  touch();
   timerShowPause(prefix);
   timerTick();
 }
@@ -269,7 +283,6 @@ function timerResume(prefix) {
   timerSetEnd(prefix, timerGetEnd(prefix) + (Date.now() - p));
   timerSetPause(prefix, 0);
   timerHidePause(prefix);
-  touch();
   timerTick();
 }
 function timerRestorePause() {
@@ -356,15 +369,7 @@ var CULTURE_IMG = CULTURE_URL + 'images/cartes-500/';
 var WEEK_THEME = { 0: 'animaux', 1: 'drapeaux', 2: 'capitales-chefs-lieux', 3: 'montagnes', 4: 'lacs-mers-oceans-rivieres', 5: 'monuments', 6: 'merveilles-et-espace' };
 var THEME_LABEL = { 'drapeaux': '🚩 Drapeaux', 'capitales-chefs-lieux': '🏛️ Capitales', 'montagnes': '⛰️ Montagnes', 'lacs-mers-oceans-rivieres': '🌊 Lacs & rivières', 'monuments': '🗿 Monuments', 'merveilles-et-espace': '🚀 Merveilles & espace', 'animaux': '🐾 Animaux' };
 function giftInfo() {
-  var now = new Date();
-  var h = now.getHours();
-  var d = (h < 4) ? new Date(now.getTime() - 24 * 3600 * 1000) : now;
-  var ds = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
-  var slot;
-  if (h < 4 || h >= 16) { slot = 'pm'; }
-  else if (h < 10) { slot = 'am'; }
-  else { slot = 'mid'; }
-  return { date: ds, slot: slot, theme: WEEK_THEME[d.getDay()] };
+  return slotNow();
 }
 function hashStr(s) {
   var h = 2166136261;
@@ -546,7 +551,6 @@ function buildColumn(colId, prefix, kid) {
       b.onclick = function() {
         var now = !isDone(prefix, m.id);
         setDone(prefix, m.id, now);
-        touch();
         c.className = now ? 'case done' : 'case';
         b.textContent = now ? 'Fait ✅' : 'À faire 👆';
         refreshStars();
@@ -588,7 +592,6 @@ function buildColumn(colId, prefix, kid) {
   var r = el('button', 'reset', '↺ Recommencer');
   r.onclick = function() {
     for (var j = 0; j < missions.length; j++) { setDone(prefix, missions[j].id, false); }
-    touch();
     buildColumn(colId, prefix, kid);
     refreshStars();
     var colEl = document.getElementById(colId);
@@ -660,7 +663,6 @@ function refreshStar(prefix) {
   var r = el('button', 'reset', '↺ Recommencer');
   r.onclick = function() {
     for (var k = 0; k < missions.length; k++) { setDone(prefix, missions[k].id, false); }
-    touch();
     var colId = colConfig(prefix).id;
     var kid = colConfig(prefix).kid;
     buildColumn(colId, prefix, kid);
@@ -680,11 +682,11 @@ function buildAll() {
   }
   timerTick();
 }
-checkExpiry();
+resetIfNewSlot();
 timerInit();
-// Reset du soir fiable meme si l'app est suspendue/reprise sans rechargement.
+// Reset fiable au changement de créneau meme si l'app est suspendue/reprise sans rechargement.
 function onResume() {
-  if (checkExpiry()) { buildAll(); }
+  if (resetIfNewSlot()) { buildAll(); }
   timerRestorePause();
   timerTick();
 }

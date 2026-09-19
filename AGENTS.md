@@ -22,7 +22,8 @@ Déployé sur **GitHub Pages**.
 
 ## Conventions de travail
 - Modifier `index.html` directement, garder le fichier petit et lisible.
-- Minuteur par joueur (topbar) : durée réglable via `TIMER_MS` dans `index.html` ; clés sous `mario-peach-v1-timer-*` pour être resetées par `clearAll()` (1h sans clic / réouverture).
+- Reset global par créneau : `resetIfNewSlot()` / `clearAll()` (`index.html`) efface tout (missions, timers, pauses) à chaque ouverture dans une nouvelle tranche — matin 4h-11h, midi 11h-16h, soir 16h-4h (journée logique, fixé sur 11h pour les petits déj tardifs). Clé `mario-peach-v1-slot`.
+- Minuteur par joueur (topbar) : durée réglable via `TIMER_MS` dans `index.html` ; clés sous `mario-peach-v1-timer-*`, effacées par le reset de créneau.
 - Pause par joueur (bouton danger sur la carte Toilettes/Bain) : overlay limité à la colonne du joueur, minuteur figé via `pausedAt` (clé `mario-peach-v1-pause-*`), reprise en décalant la date de fin.
 - Un test = un commit clair (ex: `test: flex gap sur iOS 15`).
 - Ne pas ajouter de tooling/build sans demande explicite.
