@@ -48,24 +48,31 @@
   #flash { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: #fff3bf; opacity: 0; pointer-events: none; z-index: 999; }
   #flash.go { animation: starflash .55s ease; }
   @keyframes starflash { 0% { opacity: 0; } 20% { opacity: .85; } 100% { opacity: 0; } }
+  .danger, .case.done button.danger { font-size: 1rem; min-height: 54px; min-width: 0; padding: 12px 18px; border-radius: 14px; border: 2px solid #fff; background: repeating-linear-gradient(45deg, #b91c1c 0, #b91c1c 12px, #dc2626 12px, #dc2626 24px); color: #fff; font-weight: 700; }
+  .pause { position: fixed; z-index: 1200; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: rgba(17,17,17,.85); color: #fff; touch-action: none; }
+  .pause.on { display: flex; }
+  .pause h2 { font-size: 2rem; margin: 0; }
+  .pause button { font-size: 1.4rem; min-height: 64px; padding: 14px 28px; border-radius: 16px; border: 0; background: #22c55e; color: #fff; touch-action: manipulation; }
 </style>
 </head>
 <body>
 <div id="topbar">
-  <button class="timer" id="timer-mario" type="button">20:00</button>
+  <button class="timer" id="timer-mario" type="button">15:00</button>
   <button class="topzone" id="top-colL" type="button"></button>
   <button class="topzone" id="top-colR" type="button"></button>
-  <button class="timer" id="timer-peach" type="button">20:00</button>
+  <button class="timer" id="timer-peach" type="button">15:00</button>
 </div>
 <div class="layout">
   <div class="col left theme-mario" id="colL"></div>
   <div class="col right theme-peach" id="colR"></div>
 </div>
 <div id="flash"></div>
+<div id="pause-mario" class="pause"></div>
+<div id="pause-peach" class="pause"></div>
 <script>
 var DEFAULTS = {
   peach: [
-    { id: 'toilettes', label: 'Toilettes', emoji: '🚻' },
+    { id: 'toilettes', label: 'Toilettes/Bain', emoji: '🚻' },
     { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
     { id: 'table', label: 'Table', emoji: '🍽️' },
     { id: 'dents', label: 'Dents', emoji: '🪥' },
@@ -74,7 +81,7 @@ var DEFAULTS = {
     { id: 'cheveux', label: 'Cheveux', emoji: '💇' }
   ],
   mario: [
-    { id: 'toilettes', label: 'Toilettes', emoji: '🚻' },
+    { id: 'toilettes', label: 'Toilettes/Bain', emoji: '🚻' },
     { id: 'frimousse', label: 'Frimousse', emoji: '🧼' },
     { id: 'aspirateur', label: 'Aspirateur', emoji: '🧹' },
     { id: 'dents', label: 'Dents', emoji: '🪥' },
@@ -137,10 +144,12 @@ function checkExpiry() {
   if (getLast() && (Date.now() - getLast() > TIMEOUT_MS)) { clearAll(); return true; }
   return false;
 }
-// Minuteur par joueur : 20 min, non-arretable, popup natif au demarrage.
-// Cle sous LS_PREFIX -> efface par clearAll() (reset du soir si >1h sans clic).
-var TIMER_MS = 20 * 60 * 1000; // duree du minuteur, a ajuster ici
+// Minuteur par joueur : non-arretable, popup natif au demarrage.
+// Pause par joueur : overlay limite a SA colonne, minuteur fige (pas tout l'ecran).
+// Cles sous LS_PREFIX -> effacees par clearAll() (reset du soir si >1h sans clic).
+var TIMER_MS = 15 * 60 * 1000; // duree du minuteur, a ajuster ici
 var TIMER_KEY = LS_PREFIX + 'timer-';
+var PAUSE_KEY = LS_PREFIX + 'pause-';
 var timerInt = null;
 function timerGetEnd(prefix) {
   var k = TIMER_KEY + prefix;
@@ -153,52 +162,121 @@ function timerSetEnd(prefix, end) {
   try { localStorage.setItem(k, String(end)); }
   catch (e) { mem[k] = String(end); }
 }
+function timerGetPause(prefix) {
+  var k = PAUSE_KEY + prefix;
+  try { var v = localStorage.getItem(k); if (v) { return parseInt(v, 10) || 0; } }
+  catch (e) { return parseInt(mem[k] || '0', 10) || 0; }
+  return 0;
+}
+function timerSetPause(prefix, val) {
+  var k = PAUSE_KEY + prefix;
+  try { localStorage.setItem(k, String(val)); }
+  catch (e) { mem[k] = String(val); }
+}
+function timerState(prefix) {
+  var end = timerGetEnd(prefix);
+  var p = timerGetPause(prefix);
+  if (!end) { return { state: 'idle', remain: TIMER_MS }; }
+  if (p) { return { state: 'paused', remain: Math.max(0, end - p) }; }
+  if (end > Date.now()) { return { state: 'run', remain: end - Date.now() }; }
+  return { state: 'done', remain: 0 };
+}
 function timerFmt(ms) {
   var s = Math.ceil(ms / 1000);
   if (s < 0) { s = 0; }
   var m = Math.floor(s / 60), r = s % 60;
   return m + ':' + (r < 10 ? '0' + r : r);
 }
-// 4 paliers de 5 min : jaune -> orange clair -> orange fonce -> rouge.
+// 3 paliers de 5 min (15 min) : jaune -> orange -> rouge.
 function timerColor(ms) {
   var r = ms / TIMER_MS;
-  if (r > 0.75) { return { bg: '#ffe066', fg: '#5c3d00' }; }
-  if (r > 0.5) { return { bg: '#ffa94d', fg: '#5c3d00' }; }
-  if (r > 0.25) { return { bg: '#f76707', fg: '#ffffff' }; }
+  if (r > 2 / 3) { return { bg: '#ffe066', fg: '#5c3d00' }; }
+  if (r > 1 / 3) { return { bg: '#f76707', fg: '#ffffff' }; }
   return { bg: '#e03131', fg: '#ffffff' };
 }
 function timerRender(prefix) {
+  var st = timerState(prefix);
+  var c = timerColor(st.remain);
   var btn = document.getElementById('timer-' + prefix);
-  if (!btn) { return; }
-  var end = timerGetEnd(prefix);
-  var remain = end ? Math.max(0, end - Date.now()) : TIMER_MS;
-  var c = timerColor(remain);
-  btn.style.background = c.bg;
-  btn.style.color = c.fg;
-  btn.textContent = timerFmt(remain);
+  if (btn) {
+    btn.style.background = c.bg;
+    btn.style.color = c.fg;
+    btn.textContent = timerFmt(st.remain);
+  }
+  var dz = document.getElementById('danger-' + prefix);
+  if (dz) { dz.style.display = (st.state === 'run' || st.state === 'paused') ? '' : 'none'; }
 }
 function timerTick() {
   var running = false;
   for (var i = 0; i < COLS.length; i++) {
-    var prefix = COLS[i].prefix;
-    var end = timerGetEnd(prefix);
-    timerRender(prefix);
-    if (end && end > Date.now()) { running = true; }
+    var st = timerState(COLS[i].prefix);
+    timerRender(COLS[i].prefix);
+    if (st.state === 'run') { running = true; }
   }
   if (running) { if (!timerInt) { timerInt = setInterval(timerTick, 1000); } }
   else if (timerInt) { clearInterval(timerInt); timerInt = null; }
 }
 function timerClick(prefix) {
-  var end = timerGetEnd(prefix);
-  if (!end) {
+  var st = timerState(prefix);
+  if (st.state === 'idle') {
     if (confirm('Démarrer le Timer ?')) {
       timerSetEnd(prefix, Date.now() + TIMER_MS);
       touch();
       timerTick();
     }
-    return;
   }
-  // Deja lance : ni arret ni redemarrage, meme a 00:00.
+  // run / paused / done : rien (ni arret ni redemarrage, meme a 00:00).
+}
+// Overlay de pause cale sur SA colonne (le minuteur de la topbar reste visible).
+function timerPausePos(prefix) {
+  var ov = document.getElementById('pause-' + prefix);
+  var col = document.getElementById(colConfig(prefix).id);
+  if (!ov || !col || ov.className.indexOf('on') < 0) { return; }
+  var r = col.getBoundingClientRect();
+  ov.style.left = r.left + 'px';
+  ov.style.top = r.top + 'px';
+  ov.style.width = r.width + 'px';
+  ov.style.height = r.height + 'px';
+}
+function timerShowPause(prefix) {
+  var ov = document.getElementById('pause-' + prefix);
+  if (!ov) { return; }
+  if (!ov._filled) {
+    ov.innerHTML = '';
+    ov.appendChild(el('h2', null, '⏸ En Pause Toilettes/Bain…'));
+    var b = el('button', null, 'Fin de la pause ▶');
+    b.onclick = function() { timerResume(prefix); };
+    ov.appendChild(b);
+    ov._filled = true;
+  }
+  ov.className = 'pause on';
+  timerPausePos(prefix);
+}
+function timerHidePause(prefix) {
+  var ov = document.getElementById('pause-' + prefix);
+  if (ov) { ov.className = 'pause'; }
+}
+function timerPause(prefix) {
+  if (timerState(prefix).state !== 'run') { return; }
+  timerSetPause(prefix, Date.now());
+  touch();
+  timerShowPause(prefix);
+  timerTick();
+}
+function timerResume(prefix) {
+  var p = timerGetPause(prefix);
+  if (!p) { timerHidePause(prefix); return; }
+  timerSetEnd(prefix, timerGetEnd(prefix) + (Date.now() - p));
+  timerSetPause(prefix, 0);
+  timerHidePause(prefix);
+  touch();
+  timerTick();
+}
+function timerRestorePause() {
+  for (var i = 0; i < COLS.length; i++) {
+    var prefix = COLS[i].prefix;
+    if (timerState(prefix).state === 'paused') { timerShowPause(prefix); } else { timerHidePause(prefix); }
+  }
 }
 function timerInit() {
   for (var i = 0; i < COLS.length; i++) {
@@ -207,6 +285,7 @@ function timerInit() {
       if (btn) { btn.onclick = function() { timerClick(prefix); }; }
     })(COLS[i].prefix);
   }
+  timerRestorePause();
   timerTick();
 }
 function el(tag, cls, text) {
@@ -493,6 +572,12 @@ function buildColumn(colId, prefix, kid) {
         }
       };
       c.appendChild(b);
+      if (m.id === 'toilettes') {
+        var dz = el('button', 'danger', '⏸ Pause Toilettes/Bain');
+        dz.id = 'danger-' + prefix;
+        dz.onclick = function() { timerPause(prefix); };
+        c.appendChild(dz);
+      }
       c.appendChild(el('div', 'arrow', '↓'));
       col.appendChild(c);
     })(missions[i], i);
@@ -515,6 +600,7 @@ function buildColumn(colId, prefix, kid) {
   s.appendChild(r);
   refreshStars();
   paintColumn(col, prefix);
+  timerRender(prefix);
 }
 function countDone(prefix) {
   var missions = missionsFor(prefix);
@@ -543,6 +629,7 @@ function updateTopbar() {
   }
 }
 function gotoNext(prefix) {
+  if (timerState(prefix).state === 'paused') { return; }
   var colEl = document.getElementById(colConfig(prefix).id);
   if (!colEl) { return; }
   var missions = missionsFor(prefix);
@@ -591,13 +678,21 @@ function buildAll() {
   for (var i = 0; i < COLS.length; i++) {
     buildColumn(COLS[i].id, COLS[i].prefix, COLS[i].kid);
   }
+  timerTick();
 }
 checkExpiry();
 timerInit();
 // Reset du soir fiable meme si l'app est suspendue/reprise sans rechargement.
 function onResume() {
   if (checkExpiry()) { buildAll(); }
+  timerRestorePause();
   timerTick();
+}
+// Repositionne les overlays de pause si l'ecran change de taille/orientation.
+function timerRepos() { timerPausePos('mario'); timerPausePos('peach'); }
+if (window.addEventListener) {
+  window.addEventListener('resize', timerRepos);
+  window.addEventListener('orientationchange', function() { setTimeout(timerRepos, 300); });
 }
 if (document.addEventListener) {
   document.addEventListener('visibilitychange', function() { if (!document.hidden) { onResume(); } });
