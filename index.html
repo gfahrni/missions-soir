@@ -16,6 +16,8 @@
   .topzone:active { background: rgba(255,255,255,.14); }
   .topzone .pname { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .topzone .pprog { opacity: .6; font-weight: 400; font-size: .85rem; }
+  .timer { -webkit-appearance: none; appearance: none; flex: 0 0 auto; width: 86px; display: flex; align-items: center; justify-content: center; background: #ffe066; color: #5c3d00; border: 0; border-radius: 0; font: inherit; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; -webkit-font-feature-settings: "tnum"; font-feature-settings: "tnum"; touch-action: manipulation; }
+  .timer:active { filter: brightness(.9); }
   .layout { display: flex; height: calc(100vh - 48px - env(safe-area-inset-top)); height: calc(100dvh - 48px - env(safe-area-inset-top)); }
   .col { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; scroll-snap-type: y mandatory; }
   .col.left { border-right: 2px solid #000; }
@@ -50,8 +52,10 @@
 </head>
 <body>
 <div id="topbar">
+  <button class="timer" id="timer-mario" type="button">20:00</button>
   <button class="topzone" id="top-colL" type="button"></button>
   <button class="topzone" id="top-colR" type="button"></button>
+  <button class="timer" id="timer-peach" type="button">20:00</button>
 </div>
 <div class="layout">
   <div class="col left theme-mario" id="colL"></div>
@@ -130,7 +134,80 @@ function clearAll() {
   mem = {};
 }
 function checkExpiry() {
-  if (getLast() && (Date.now() - getLast() > TIMEOUT_MS)) { clearAll(); }
+  if (getLast() && (Date.now() - getLast() > TIMEOUT_MS)) { clearAll(); return true; }
+  return false;
+}
+// Minuteur par joueur : 20 min, non-arretable, popup natif au demarrage.
+// Cle sous LS_PREFIX -> efface par clearAll() (reset du soir si >1h sans clic).
+var TIMER_MS = 20 * 60 * 1000; // duree du minuteur, a ajuster ici
+var TIMER_KEY = LS_PREFIX + 'timer-';
+var timerInt = null;
+function timerGetEnd(prefix) {
+  var k = TIMER_KEY + prefix;
+  try { var v = localStorage.getItem(k); if (v) { return parseInt(v, 10) || 0; } }
+  catch (e) { return parseInt(mem[k] || '0', 10) || 0; }
+  return 0;
+}
+function timerSetEnd(prefix, end) {
+  var k = TIMER_KEY + prefix;
+  try { localStorage.setItem(k, String(end)); }
+  catch (e) { mem[k] = String(end); }
+}
+function timerFmt(ms) {
+  var s = Math.ceil(ms / 1000);
+  if (s < 0) { s = 0; }
+  var m = Math.floor(s / 60), r = s % 60;
+  return m + ':' + (r < 10 ? '0' + r : r);
+}
+// 4 paliers de 5 min : jaune -> orange clair -> orange fonce -> rouge.
+function timerColor(ms) {
+  var r = ms / TIMER_MS;
+  if (r > 0.75) { return { bg: '#ffe066', fg: '#5c3d00' }; }
+  if (r > 0.5) { return { bg: '#ffa94d', fg: '#5c3d00' }; }
+  if (r > 0.25) { return { bg: '#f76707', fg: '#ffffff' }; }
+  return { bg: '#e03131', fg: '#ffffff' };
+}
+function timerRender(prefix) {
+  var btn = document.getElementById('timer-' + prefix);
+  if (!btn) { return; }
+  var end = timerGetEnd(prefix);
+  var remain = end ? Math.max(0, end - Date.now()) : TIMER_MS;
+  var c = timerColor(remain);
+  btn.style.background = c.bg;
+  btn.style.color = c.fg;
+  btn.textContent = timerFmt(remain);
+}
+function timerTick() {
+  var running = false;
+  for (var i = 0; i < COLS.length; i++) {
+    var prefix = COLS[i].prefix;
+    var end = timerGetEnd(prefix);
+    timerRender(prefix);
+    if (end && end > Date.now()) { running = true; }
+  }
+  if (running) { if (!timerInt) { timerInt = setInterval(timerTick, 1000); } }
+  else if (timerInt) { clearInterval(timerInt); timerInt = null; }
+}
+function timerClick(prefix) {
+  var end = timerGetEnd(prefix);
+  if (!end) {
+    if (confirm('Démarrer le Timer ?')) {
+      timerSetEnd(prefix, Date.now() + TIMER_MS);
+      touch();
+      timerTick();
+    }
+    return;
+  }
+  // Deja lance : ni arret ni redemarrage, meme a 00:00.
+}
+function timerInit() {
+  for (var i = 0; i < COLS.length; i++) {
+    (function(prefix) {
+      var btn = document.getElementById('timer-' + prefix);
+      if (btn) { btn.onclick = function() { timerClick(prefix); }; }
+    })(COLS[i].prefix);
+  }
+  timerTick();
 }
 function el(tag, cls, text) {
   var d = document.createElement(tag);
@@ -516,6 +593,16 @@ function buildAll() {
   }
 }
 checkExpiry();
+timerInit();
+// Reset du soir fiable meme si l'app est suspendue/reprise sans rechargement.
+function onResume() {
+  if (checkExpiry()) { buildAll(); }
+  timerTick();
+}
+if (document.addEventListener) {
+  document.addEventListener('visibilitychange', function() { if (!document.hidden) { onResume(); } });
+}
+window.addEventListener('pageshow', onResume);
 if (window.fetch) {
   fetch('missions.json').then(function(r) {
     if (!r.ok) { throw new Error('http ' + r.status); }

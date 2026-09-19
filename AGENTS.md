@@ -22,6 +22,7 @@ Déployé sur **GitHub Pages**.
 
 ## Conventions de travail
 - Modifier `index.html` directement, garder le fichier petit et lisible.
+- Minuteur par joueur (topbar) : durée réglable via `TIMER_MS` dans `index.html` ; clés sous `mario-peach-v1-timer-*` pour être resetées par `clearAll()` (1h sans clic / réouverture).
 - Un test = un commit clair (ex: `test: flex gap sur iOS 15`).
 - Ne pas ajouter de tooling/build sans demande explicite.
 - Langue UI : français.
