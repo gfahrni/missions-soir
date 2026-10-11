@@ -57,10 +57,10 @@
 </head>
 <body>
 <div id="topbar">
-  <button class="timer" id="timer-mario" type="button">15:00</button>
+  <button class="timer" id="timer-mario" type="button">12:00</button>
   <button class="topzone" id="top-colL" type="button"></button>
   <button class="topzone" id="top-colR" type="button"></button>
-  <button class="timer" id="timer-peach" type="button">15:00</button>
+  <button class="timer" id="timer-peach" type="button">12:00</button>
 </div>
 <div class="layout">
   <div class="col left theme-mario" id="colL"></div>
@@ -163,7 +163,7 @@ function resetIfNewSlot() {
 // Minuteur par joueur : non-arretable, popup natif au demarrage.
 // Pause par joueur : overlay limite a SA colonne, minuteur fige (pas tout l'ecran).
 // Cles sous LS_PREFIX -> effacees par clearAll() (reset du soir si >1h sans clic).
-var TIMER_MS = 15 * 60 * 1000; // duree du minuteur, a ajuster ici
+var TIMER_MS = 12 * 60 * 1000; // duree du minuteur, a ajuster ici
 var TIMER_KEY = LS_PREFIX + 'timer-';
 var PAUSE_KEY = LS_PREFIX + 'pause-';
 var timerInt = null;
@@ -203,7 +203,7 @@ function timerFmt(ms) {
   var m = Math.floor(s / 60), r = s % 60;
   return m + ':' + (r < 10 ? '0' + r : r);
 }
-// 3 paliers de 5 min (15 min) : jaune -> orange -> rouge.
+// 3 paliers de 4 min (12 min) : jaune -> orange -> rouge.
 function timerColor(ms) {
   var r = ms / TIMER_MS;
   if (r > 2 / 3) { return { bg: '#ffe066', fg: '#5c3d00' }; }
